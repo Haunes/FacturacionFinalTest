@@ -1,8 +1,9 @@
 def format_currency(value, currency="USD"):
     """Formatea un número como moneda."""
-    return f"{currency} {value:,.2f}"
-
-
+    try:
+        return f"{currency} {float(value):,.2f}"
+    except (ValueError, TypeError):
+        return f"{currency} 0.00"
 
 def find_column(df, possible_names):
     """

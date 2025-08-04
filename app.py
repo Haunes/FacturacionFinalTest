@@ -1,25 +1,94 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import unicodedata
 
-# Intentar usar los nuevos módulos, si no usar los originales
-try:
-    from ui.sidebar import render_sidebar
-    from ui.main_content import render_main_content
-    from data.data_manager import DataManager
-    from utils.file_utils import safe_filename, ensure_extension
-except ImportError:
-    # Fallback a funcionalidad original si los nuevos módulos no están disponibles
-    from data_handler import load_excel_files, filter_data
-    from utils import format_currency, get_document_count, find_column
-
-# Imports que siempre deben funcionar
+# Importaciones que sabemos que funcionan
 from report_generator import generate_report, build_report_filename
 from excel_generator_ravago import create_ravago_report
 from preview_generator_html import generate_preview_html
-import unicodedata
 
-# ---------------- Helpers para nombres ----------------
+# ---------------- Funciones utilitarias integradas ----------------
+def format_currency(value, currency="USD"):
+    """Formatea un número como moneda."""
+    try:
+        return f"{currency} {float(value):,.2f}"
+    except (ValueError, TypeError):
+        return f"{currency} 0.00"
+
+def find_column(df, possible_names):
+    """
+    Busca una columna en el DataFrame usando una lista de posibles nombres.
+    Retorna el nombre de la primera columna encontrada o None.
+    """
+    for col_name in possible_names:
+        for actual_col in df.columns:
+            if col_name.upper() in actual_col.upper():
+                return actual_col
+    return None
+
+def get_document_count(df):
+    """
+    Obtiene el número de documentos únicos usando diferentes posibles nombres de columna.
+    """
+    possible_names = ['NO. CASO', 'NUMERO CASO', 'CASO', 'ID', 'NUMERO', 'DOCUMENTO']
+    col_name = find_column(df, possible_names)
+    
+    if col_name:
+        return df[col_name].nunique()
+    else:
+        # Si no encuentra ninguna columna específica, usa el número de filas
+        return len(df)
+
+def load_excel_files(uploaded_files):
+    """
+    Carga múltiples archivos Excel subidos a través de Streamlit,
+    los combina en un único DataFrame y maneja posibles errores.
+    """
+    if not uploaded_files:
+        return pd.DataFrame()
+
+    all_data = []
+    for file in uploaded_files:
+        try:
+            df = pd.read_excel(file, engine='openpyxl')
+            all_data.append(df)
+        except Exception as e:
+            st.error(f"Error al leer el archivo {file.name}: {e}")
+            continue
+
+    if not all_data:
+        return pd.DataFrame()
+
+    combined_df = pd.concat(all_data, ignore_index=True)
+    
+    date_columns = ['FECHA ASIGNACION', 'FECHA ENTREGA']
+    for col in date_columns:
+        if col in combined_df.columns:
+            combined_df[col] = pd.to_datetime(combined_df[col], errors='coerce')
+
+    return combined_df
+
+def filter_data(df, empresa, anio, mes):
+    """
+    Filtra el DataFrame principal según la empresa, año y mes de asignación.
+    """
+    if df.empty:
+        return pd.DataFrame()
+
+    filtered = df.copy()
+
+    if empresa and empresa != "Todas":
+        filtered = filtered[filtered['EMPRESA'] == empresa]
+    
+    if anio and anio != "Todos":
+        filtered = filtered[filtered['AÑO ASIGNACION'] == anio]
+
+    if mes and mes != "Todos":
+        filtered = filtered[filtered['MES ASIGNACION'] == mes]
+        
+    return filtered
+
 def safe_filename(name: str) -> str:
     """Quita tildes y caracteres no ASCII; reemplaza espacios por guiones; deja solo [A-Za-z0-9-._]."""
     norm = unicodedata.normalize("NFKD", name)
@@ -40,17 +109,6 @@ st.markdown("Cargue sus archivos de Excel para comenzar a generar los reportes."
 
 def main():
     """Función principal de la aplicación."""
-    try:
-        # Usar nueva arquitectura si está disponible
-        data_manager = DataManager()
-        config = render_sidebar(data_manager)
-        render_main_content(data_manager, config)
-    except NameError:
-        # Fallback a la implementación original
-        main_original()
-
-def main_original():
-    """Implementación original como fallback."""
     # ---------------- Carga de archivos ----------------
     with st.sidebar:
         st.header("1. Cargar Archivos")
@@ -157,6 +215,7 @@ def main_original():
                             st.success(f"¡Reporte generado! Nombre: **{final_name}**")
                         except Exception as e:
                             st.error(f"Ocurrió un error al generar el reporte: {e}")
+                            st.exception(e)  # Mostrar el error completo para debugging
                 else:
                     st.error("Debe seleccionar una Empresa, Año y Mes para generar el reporte.")
 
