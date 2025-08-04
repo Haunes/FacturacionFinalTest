@@ -4,7 +4,6 @@ from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.drawing.image import Image
 from io import BytesIO
 from datetime import datetime
-from utils import get_document_count, find_column
 from openpyxl.utils import column_index_from_string as colidx
 from openpyxl.worksheet.page import PageMargins
 
@@ -86,6 +85,24 @@ def draw_outer_frame(ws, tl: str, br: str):
 # =============================
 # Generador del reporte
 # =============================
+
+def find_column(df, possible_names):
+    """Busca una columna en el DataFrame usando una lista de posibles nombres."""
+    for col_name in possible_names:
+        for actual_col in df.columns:
+            if col_name.upper() in actual_col.upper():
+                return actual_col
+    return None
+
+def get_document_count(df):
+    """Obtiene el número de documentos únicos."""
+    possible_names = ['NO. CASO', 'NUMERO CASO', 'CASO', 'ID', 'NUMERO', 'DOCUMENTO']
+    col_name = find_column(df, possible_names)
+    
+    if col_name:
+        return df[col_name].nunique()
+    else:
+        return len(df)
 
 def create_ravago_report(data: pd.DataFrame, anio: int, mes: str, funcionarios: dict | None = None):
     """
