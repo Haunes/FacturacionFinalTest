@@ -5,8 +5,20 @@ from docx.enum.table import WD_ALIGN_VERTICAL, WD_ROW_HEIGHT_RULE
 from io import BytesIO
 import pandas as pd
 from datetime import datetime
-from utils.formatting_utils import format_currency
-from utils.data_utils import get_document_count, get_representative_price
+
+# Usar importaciones directas para evitar conflictos
+from utils import format_currency, get_document_count
+
+def get_representative_price(data: pd.DataFrame) -> float:
+    """Precio representativo para GWealth."""
+    if 'VALOR' not in data.columns: 
+        return 0.0
+    serie = pd.to_numeric(data['VALOR'], errors='coerce').dropna()
+    if serie.empty: 
+        return 0.0
+    moda = serie.mode()
+    return float(moda.iloc[0]) if not moda.empty else float(serie.iloc[0])
+
 from .word_styles import WordStyleManager
 from .word_table_builder import WordTableBuilder
 
@@ -20,16 +32,6 @@ class WordReportGenerator:
     def generate_report(self, data: pd.DataFrame, empresa: str, anio: int, mes: str, funcionarios: dict) -> BytesIO:
         """
         Genera el documento Word completo.
-        
-        Args:
-            data: Datos filtrados
-            empresa: Nombre de la empresa
-            anio: Año del reporte
-            mes: Mes del reporte
-            funcionarios: Información de funcionarios
-            
-        Returns:
-            Buffer con el documento Word generado
         """
         doc = Document()
         

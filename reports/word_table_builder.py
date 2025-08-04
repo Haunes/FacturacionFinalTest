@@ -3,8 +3,18 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_ALIGN_VERTICAL
 import pandas as pd
-from utils.formatting_utils import format_currency
-from utils.data_utils import get_representative_price
+from utils import format_currency
+
+def get_representative_price(data: pd.DataFrame) -> float:
+    """Precio representativo para GWealth."""
+    if 'VALOR' not in data.columns: 
+        return 0.0
+    serie = pd.to_numeric(data['VALOR'], errors='coerce').dropna()
+    if serie.empty: 
+        return 0.0
+    moda = serie.mode()
+    return float(moda.iloc[0]) if not moda.empty else float(serie.iloc[0])
+
 from .word_table_styles import WordTableStyles
 
 class WordTableBuilder:

@@ -4,7 +4,7 @@ from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.drawing.image import Image
 from io import BytesIO
 from datetime import datetime
-from utils.data_utils import get_document_count, find_column
+from utils import get_document_count, find_column
 from .excel_styles import ExcelStyleManager
 from .excel_sheet_builder import ExcelSheetBuilder
 
@@ -18,15 +18,6 @@ class ExcelReportGenerator:
     def create_ravago_report(self, data: pd.DataFrame, anio: int, mes: str, funcionarios: dict = None) -> BytesIO:
         """
         Genera un Excel con dos hojas para Ravago.
-        
-        Args:
-            data: Datos filtrados
-            anio: Año del reporte
-            mes: Mes del reporte
-            funcionarios: Información de funcionarios
-            
-        Returns:
-            Buffer con el archivo Excel generado
         """
         wb = Workbook()
         

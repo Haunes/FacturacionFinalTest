@@ -3,7 +3,16 @@ from openpyxl.worksheet.page import PageMargins
 from openpyxl.utils import column_index_from_string as colidx
 from openpyxl.styles import Side, Border
 from .excel_styles import ExcelStyleManager
-from utils.date_utils import fecha_es
+
+# Meses en español
+MESES_ES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+]
+
+def fecha_es(dt) -> str:
+    """Devuelve 'dd de <mes> de yyyy' en español."""
+    return f"{dt.day:02d} de {MESES_ES[dt.month-1]} de {dt.year}"
 
 class ExcelSheetBuilder:
     """Construye las hojas de Excel para reportes de Ravago."""
@@ -249,8 +258,6 @@ class ExcelSheetBuilder:
         self.style_manager.style_cell(
             ws['F8'], 'TOTAL', self.style_manager.header_font, 
             self.style_manager.center, self.style_manager.header_fill, 
-            self.style_
-            self.style_manager.center, self.style_manager.header_fill,
             self.style_manager.thin_border
         )
         
